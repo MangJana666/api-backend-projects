@@ -68,7 +68,7 @@ class StoriesController extends Controller
      
              return response()->json([
                  'message' => 'Story created successfully',
-                 'story' => $story->load('user'),
+                 'story' => $story
              ], 201);
          } catch (\Exception $e) {
              Log::error('Error creating story: ' . $e->getMessage(), [
@@ -86,7 +86,7 @@ class StoriesController extends Controller
      */
     public function show(string $id)
     {
-        $stories = Story::find($id);
+        $stories = Story::with('images')->find($id);
 
         if($stories){
             return response()->json([
@@ -115,6 +115,13 @@ class StoriesController extends Controller
             'images_cover.required' => 'Images cover is required',
             'category_id.required' => 'Category ID is required',
         ]);
+
+        $stories = Story::find($id);
+        if(!$stories){
+            return response()->json()([
+                'message' => 'Story not found'
+            ], 404);
+        }
     }
 
     /**

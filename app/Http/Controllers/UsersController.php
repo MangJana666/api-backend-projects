@@ -123,13 +123,25 @@ class UsersController extends Controller
             'password' => Hash::make($request->input('password')),
         ]);
 
+        $token = $user->createToken('auth_token')->plainTextToken;
+
         if(!$user){
             return response()->json([
                 'message' => 'Failed to create user'
             ], 400);
         }else{
             return response()->json([
-                'message' => 'User created successfully'
+                'message' => 'User created successfully',
+                'data' => [
+                    "token" => $token],
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'email' => $user->email,
+                    'avatar' => $user->avatar,
+                    'about' => $user->about
+                ]
             ], 200);
         }
     }
@@ -205,29 +217,68 @@ class UsersController extends Controller
         ], 200);
     }
 
-    public function updateUserProfile(Request $request){
-        $user = auth()->user();
+    // public function updateUserProfile(Request $request){
+    //     $user = auth()->user();
 
-        $validateData = $request->validate([
-            'name' => 'required|max:50',
-            'avatar' => 'required',
-            'about' => 'required',
-        ], [
-            'name.required' => 'Name is required',
-            'avatar.required' => 'Avatar is required',
-            'about.required' => 'About is required',
-        ]);
+    //     $validateData = $request->validate([
+    //         'name' => 'required|max:50',
+    //         'avatar' => 'required',
+    //         'about' => 'required',
+    //     ], [
+    //         'name.required' => 'Name is required',
+    //         'avatar.required' => 'Avatar is required',
+    //         'about.required' => 'About is required',
+    //     ]);
 
-        $user->name = $validateData['name'];
-        $user->avatar = $validateData['avatar'];
-        $user->about = $validateData['about'];
+    //     $user->name = $validateData['name'];
+    //     $user->avatar = $validateData['avatar'];
+    //     $user->about = $validateData['about'];
 
-        $user->save();
+    //     $user->save();
 
-        return response()->json([
-            'message' => 'User profile updated successfully',
-        ], 200);
+    //     return response()->json([
+    //         'message' => 'User profile updated successfully',
+    //         'user' => [
+    //             'name' => $user->name,
+    //             'username' => $user->username,
+    //             'email' => $user->email,
+    //             'avatar' => $user->avatar,
+    //             'about' => $user->about
+    //         ]
+    //     ], 200);
+    // }
+
+    public function updateUserProfile(Request $request) {
+        try {
+            $user = auth()->user();
+    
+            $validateData = $request->validate([
+                'name' => 'required|max:50',
+                'avatar' => 'required',
+                'about' => 'required',
+            ]);
+    
+            $user->name = $validateData['name'];
+            $user->avatar = $validateData['avatar'];
+            $user->about = $validateData['about'];
+    
+            $user->save();
+    
+            return response()->json([
+                'message' => 'User profile updated successfully',
+                'user' => [
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'email' => $user->email,
+                    'avatar' => $user->avatar,
+                    'about' => $user->about
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage(), 'status' => false], 500);
+        }
     }
+    
 
     public function uploadAvatar(Request $request)
     {
@@ -241,6 +292,10 @@ class UsersController extends Controller
             }
             $avatarName = time();
             $resultAvatar = $avatar->storeAs('avatars', "{$avatarName}.{$avatar->extension()}", 'public');
+
+            $user = auth()->user();
+            $user->avatar = $resultAvatar;
+            $user->save();
     
             if (!$resultAvatar) {
                 return response()->json(['message' => 'Failed to store file', 'status' => false], 500);

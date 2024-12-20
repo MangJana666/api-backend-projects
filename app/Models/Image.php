@@ -17,6 +17,6 @@ class Image extends Model
     ];
 
     public function story(): BelongsTo{
-        return $this->belongsTo(Story::class);
+        return $this->belongsTo(Story::class, 'stories_id');
     }
 }
