@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
 use App\Models\Category;
 use Illuminate\Http\Request;
 
@@ -12,10 +13,17 @@ class CategoriesController extends Controller
      */
     public function index()
     {
-        $categories = Category::all();
-        return response()->json([
-            'categories' => $categories
-        ]);
+        try {
+            $categories = Category::all();
+            return response()->json([
+                'categories' => $categories
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to retrieve categories',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -23,22 +31,25 @@ class CategoriesController extends Controller
      */
     public function store(Request $request)
     {
-        $validateData = $request->validate([
-            'name' => 'required|unique:categories,name|max:50',
-        ], [
-            'name.required' => 'Name is required',
-        ]);
+        try {
+            $validateData = $request->validate([
+                'name' => 'required|unique:categories,name|max:50',
+            ], [
+                'name.required' => 'Name is required',
+                'name.unique' => 'Category name must be unique',
+            ]);
 
-        $categories = Category::create($validateData);
+            $categories = Category::create($validateData);
 
-        if(!$categories){
-            return response()->json([
-                'message' => 'Category not created'
-            ], 400);
-        }else{
             return response()->json([
                 'message' => 'Category created successfully',
-            ], 200);
+                'category' => $categories
+            ], 201);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Failed to create category',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 
@@ -47,16 +58,23 @@ class CategoriesController extends Controller
      */
     public function show(string $id)
     {
-        $categories = Category::find($id);
+        try {
+            $category = Category::find($id);
 
-        if($categories){
+            if ($category) {
+                return response()->json([
+                    'category' => $category
+                ], 200);
+            } else {
+                return response()->json([
+                    'message' => 'Category not found'
+                ], 404);
+            }
+        } catch (\Exception $e) {
             return response()->json([
-                'categories' => $categories
-            ], 200);
-        }else{
-            return response()->json([
-                'message' => 'Category not found'
-            ], 404);
+                'message' => 'Failed to retrieve category',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 
@@ -65,23 +83,34 @@ class CategoriesController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $validateData = $request->validate([
-            'name' => 'required|unique:categories,name|max:50',
-        ], [
-            'name.required' => 'Name is required',
-        ]);
+        try {
+            $validateData = $request->validate([
+                'name' => 'required|unique:categories,name|max:50',
+            ], [
+                'name.required' => 'Name is required',
+                'name.unique' => 'Category name must be unique',
+            ]);
 
-        $categories = Category::find($id);
-        if(!$categories){
+            $category = Category::find($id);
+
+            if (!$category) {
+                return response()->json([
+                    'message' => 'Category not found'
+                ], 404);
+            }
+
+            $category->update($validateData);
+
             return response()->json([
-                'message' => 'Category not found'
-            ], 404);
+                'message' => 'Category updated successfully',
+                'category' => $category
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to update category',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $categories->update($validateData);
-        return response()->json([
-            'message' => 'Category updated successfully'
-        ], 200);
     }
 
     /**
@@ -89,6 +118,25 @@ class CategoriesController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        try {
+            $category = Category::find($id);
+
+            if (!$category) {
+                return response()->json([
+                    'message' => 'Category not found'
+                ], 404);
+            }
+
+            $category->delete();
+
+            return response()->json([
+                'message' => 'Category deleted successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to delete category',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

@@ -16,11 +16,25 @@ class StoriesController extends Controller
      */
     public function index()
     {
-        $stories = Story::all();
-        return response()->json([
-            'stories' => $stories
-        ], 200);
-    }
+        try {
+            $stories = Story::all();
+    
+            if ($stories->isEmpty()) {
+                return response()->json([
+                    'message' => 'No stories found'
+                ], 404);
+            }
+    
+            return response()->json([
+                'stories' => $stories
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to retrieve stories',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }    
 
     /**
      * Store a newly created resource in storage.
@@ -86,18 +100,26 @@ class StoriesController extends Controller
      */
     public function show(string $id)
     {
-        $stories = Story::with('images')->find($id);
-
-        if($stories){
+        try {
+            $story = Story::with('images')->find($id);
+    
+            if (!$story) {
+                return response()->json([
+                    'message' => 'Story not found'
+                ], 404);
+            }
+    
             return response()->json([
-                'stories' => $stories
+                'story' => $story
             ], 200);
-        }else{
+        } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Story not found'
-            ], 404);
+                'message' => 'Failed to retrieve the story',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
+    
 
     /**
      * Update the specified resource in storage.

@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UsersController;
 use App\Http\Controllers\StoriesController;
 use App\Http\Controllers\CategoriesController;
@@ -18,8 +19,8 @@ use App\Http\Controllers\CategoriesController;
 |
 */
 
-Route::post('/register', [UsersController::class, 'register'])->name('register');
-Route::post('/login', [UsersController::class, 'login'])->name('login');
+Route::post('/register', [AuthController::class, 'register'])->name('register');
+Route::post('/login', [AuthController::class, 'login'])->name('login');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('users', UsersController::class)->parameters([
@@ -34,7 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('stories', StoriesController::class)->parameters([
         'stories' => 'id'
     ]);
-    Route::post('/logout', [UsersController::class, 'logout'])->name('logout');
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
 
     
