@@ -58,6 +58,8 @@ class UsersController extends Controller
     public function show(string $id)
     {
         try {
+            $token = auth()->user();
+
             $user = Users::find($id);
 
             if (!$user) {
@@ -68,11 +70,13 @@ class UsersController extends Controller
 
             return response()->json([
                 'message' => 'User found',
+                'data' => $token,
                 'user' => [
                     'name' => $user->name,
                     'username' => $user->username,
                     'email' => $user->email,
-                    'avatar' => $user->avatar
+                    'avatar' => $user->avatar,
+                    'about' => $user->about
                 ]
             ], 200);
 
@@ -93,16 +97,21 @@ class UsersController extends Controller
             $user = auth()->user();
 
             $validateData = $request->validate([
-                'name' => 'required|max:50',
-                'avatar' => 'required',
-                'about' => 'required',
+                'name' => 'sometimes|max:50',
+                'avatar' => 'sometimes',
+                'about' => 'sometimes',
             ]);
 
-            $user->name = $validateData['name'];
-            $user->avatar = $validateData['avatar'];
-            $user->about = $validateData['about'];
+            // $user->name = $validateData['name'];
+            // $user->avatar = $validateData['avatar'];
+            // $user->about = $validateData['about'];
+            // $user->save();
 
-            $user->save();
+            $user->update([
+                'name' => $validateData['name'],
+                'avatar' => $validateData['avatar'],
+                'about' => $validateData['about']
+            ]);
 
             return response()->json([
                 'message' => 'User profile updated successfully',
@@ -236,6 +245,8 @@ class UsersController extends Controller
     public function uploadAvatar(Request $request)
     {
         try {
+            $user = auth()->user();
+
             $request->validate([
                 'avatar' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             ]);

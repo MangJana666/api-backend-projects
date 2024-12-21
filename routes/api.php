@@ -35,6 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('stories', StoriesController::class)->parameters([
         'stories' => 'id'
     ]);
+    // Route::put('/update-stories/{id}', [StoriesController::class, 'updateStories'])->name('update-stories');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
 
