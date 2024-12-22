@@ -32,10 +32,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('categories', CategoriesController::class)->parameters([
         'categories' => 'id'
     ]);
-    Route::apiResource('stories', StoriesController::class)->parameters([
-        'stories' => 'id'
-    ]);
+    // Route::apiResource('stories', StoriesController::class)->parameters([
+    //     'stories' => 'id'
+    // ]);
     // Route::put('/update-stories/{id}', [StoriesController::class, 'updateStories'])->name('update-stories');
+    Route::apiResource('stories', StoriesController::class);
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
 

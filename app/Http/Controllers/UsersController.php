@@ -70,7 +70,7 @@ class UsersController extends Controller
 
             return response()->json([
                 'message' => 'User found',
-                'data' => $token,
+                // 'data' => $token,
                 'user' => [
                     'name' => $user->name,
                     'username' => $user->username,
