@@ -70,9 +70,9 @@ class StoriesController extends Controller
      public function store(Request $request)
      {
          try {
-            $user = auth()->user();
-
-             $validateata = $request->validate([
+             $user = auth()->user();
+     
+             $validateData = $request->validate([
                  'title' => 'required',
                  'content' => 'required',
                  'images_cover' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
@@ -84,6 +84,7 @@ class StoriesController extends Controller
                  return response()->json(['message' => 'User not authenticated'], 401);
              }
      
+             // Handle cover image upload
              $coverImagePath = null;
              if ($request->hasFile('images_cover')) {
                  $coverImage = $request->file('images_cover');
@@ -91,37 +92,38 @@ class StoriesController extends Controller
                  $coverImage->storeAs('public/cover', $coverImagePath);
              }
      
-             $stories = Story::create([
-                 'title' => $validateData['title'],
-                 'content' => $validateData['content'],
-                 'images_cover' => $coverImagePath,
-                 'category_id' => $validateData['category_id'],
-                 'user_id' => $user->id,
-             ]);
-     
+             // Handle multiple images upload
+             $imagePaths = [];
              if ($request->hasFile('images')) {
                  foreach ($request->file('images') as $image) {
                      $imagePath = time() . '_' . $image->getClientOriginalName();
                      $image->storeAs('public/images', $imagePath);
-                     $stories->images()->create(['filename' => $imagePath]);
+                     $imagePaths[] = $imagePath; // Add to image paths array
                  }
              }
      
+             // Create the story
+             $story = Story::create([
+                 'title' => $validateData['title'],
+                 'content' => $validateData['content'],
+                 'images_cover' => $coverImagePath,
+                 'images' => json_encode($imagePaths), // Save as JSON
+                 'category_id' => $validateData['category_id'],
+                 'user_id' => $user->id,
+             ]);
+     
              return response()->json([
                  'message' => 'Story created successfully',
-                 'story' => $stories
+                 'story' => $story,
              ], 201);
          } catch (\Exception $e) {
-             Log::error('Error creating story: ' . $e->getMessage(), [
-                 'trace' => $e->getTraceAsString()
+             \Log::error('Error creating story: ' . $e->getMessage(), [
+                 'trace' => $e->getTraceAsString(),
              ]);
              return response()->json(['message' => 'Something went wrong', 'error' => $e->getMessage()], 500);
          }
      }
      
-    
-    
-
     /**
      * Display the specified resource.
      */
@@ -615,123 +617,178 @@ class StoriesController extends Controller
     //     }
     // }
 
-    public function update(Request $request, string $id) //ne nganggo id image liak
+    // public function update(Request $request, string $id) //ne nganggo id image liak
+    // {
+    //     try {
+    //         // Validasi pengguna yang login
+    //         $user = auth()->user();
+    //         if (!$user) {
+    //             return response()->json([
+    //                 'message' => 'User not authenticated',
+    //             ], 401);
+    //         }
+    
+    //         // Validasi data
+    //         $validatedData = $request->validate([
+    //             'title' => 'sometimes|unique:stories,title,' . $id . ',id|max:255',
+    //             'content' => 'sometimes',
+    //             'images_cover' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+    //             'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+    //             'category_id' => 'sometimes|exists:categories,id',
+    //             '_removeImages' => 'array', // Validasi untuk array ID gambar
+    //             '_removeImages.*' => 'exists:images,id', // Validasi ID gambar harus ada di database
+    //         ], [
+    //             'title.required' => 'Title is required',
+    //             'title.unique' => 'Story title must be unique',
+    //             'content.required' => 'Content is required',
+    //             'category_id.required' => 'Category is required',
+    //             'category_id.exists' => 'Category does not exist',
+    //             '_removeImages.*.exists' => 'Image to be removed does not exist.',
+    //         ]);
+    
+    //         // Cari story berdasarkan ID
+    //         $story = Story::find($id);
+    //         if (!$story) {
+    //             return response()->json([
+    //                 'message' => 'Story not found',
+    //             ], 404);
+    //         }
+    
+    //         $updateData = [];
+    
+    //         // Perbarui title jika ada
+    //         if (isset($validatedData['title'])) {
+    //             $updateData['title'] = $validatedData['title'];
+    //         }
+    
+    //         // Perbarui content jika ada
+    //         if (isset($validatedData['content'])) {
+    //             $updateData['content'] = $validatedData['content'];
+    //         }
+    
+    //         // Perbarui category_id jika ada
+    //         if (isset($validatedData['category_id'])) {
+    //             $updateData['category_id'] = $validatedData['category_id'];
+    //         }
+    
+    //         // Perbarui cover image jika ada file yang diupload
+    //         $coverImagePath = $story->images_cover;
+    //         if ($request->hasFile('images_cover')) {
+    //             $coverImage = $request->file('images_cover');
+    //             $coverImagePath = time() . '_' . $coverImage->getClientOriginalName();
+    //             $coverImage->storeAs('public/cover', $coverImagePath);
+    //             $updateData['images_cover'] = $coverImagePath;
+    //         }
+    
+    //         // Perbarui data cerita
+    //         $story->update($updateData);
+    
+    //         // Hapus gambar berdasarkan ID di _removeImages[]
+    //         if ($request->has('_removeImages')) {
+    //             $imageIds = $validatedData['_removeImages'];
+    
+    //             foreach ($imageIds as $imageId) {
+    //                 $image = $story->images()->find($imageId);
+    
+    //                 if ($image) {
+    //                     // Hapus file gambar dari storage
+    //                     Storage::delete('public/images/' . $image->filename);
+    
+    //                     // Hapus data gambar dari database
+    //                     $image->delete();
+    //                 }
+    //             }
+    //         }
+    
+    //         // Tambahkan gambar baru jika diupload
+    //         if ($request->hasFile('images')) {
+    //             foreach ($request->file('images') as $image) {
+    //                 $imagePath = time() . '_' . $image->getClientOriginalName();
+    //                 $image->storeAs('public/images', $imagePath);
+    //                 $story->images()->create(['filename' => $imagePath]);
+    //             }
+    //         }
+    
+    //         return response()->json([
+    //             'message' => 'Story updated successfully',
+    //             'story' => $story->load('images'),
+    //         ], 200);
+    
+    //     } catch (\Illuminate\Validation\ValidationException $e) {
+    //         return response()->json([
+    //             'message' => 'Validation failed',
+    //             'errors' => $e->errors(),
+    //         ], 422);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'message' => 'Failed to update story',
+    //             'error' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
+    public function update(Request $request, string $id)
     {
         try {
-            // Validasi pengguna yang login
             $user = auth()->user();
             if (!$user) {
-                return response()->json([
-                    'message' => 'User not authenticated',
-                ], 401);
+                return response()->json(['message' => 'User not authenticated'], 401);
             }
     
-            // Validasi data
             $validatedData = $request->validate([
-                'title' => 'sometimes|unique:stories,title,' . $id . ',id|max:255',
+                'title' => 'sometimes|max:255',
                 'content' => 'sometimes',
                 'images_cover' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
                 'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
                 'category_id' => 'sometimes|exists:categories,id',
-                '_removeImages' => 'array', // Validasi untuk array ID gambar
-                '_removeImages.*' => 'exists:images,id', // Validasi ID gambar harus ada di database
-            ], [
-                'title.required' => 'Title is required',
-                'title.unique' => 'Story title must be unique',
-                'content.required' => 'Content is required',
-                'category_id.required' => 'Category is required',
-                'category_id.exists' => 'Category does not exist',
-                '_removeImages.*.exists' => 'Image to be removed does not exist.',
             ]);
     
-            // Cari story berdasarkan ID
-            $story = Story::find($id);
-            if (!$story) {
-                return response()->json([
-                    'message' => 'Story not found',
-                ], 404);
+            $story = Story::findOrFail($id);
+    
+            if ($request->has('title')) {
+                $story->title = $validatedData['title'];
             }
     
-            $updateData = [];
-    
-            // Perbarui title jika ada
-            if (isset($validatedData['title'])) {
-                $updateData['title'] = $validatedData['title'];
+            if ($request->has('content')) {
+                $story->content = $validatedData['content'];
             }
     
-            // Perbarui content jika ada
-            if (isset($validatedData['content'])) {
-                $updateData['content'] = $validatedData['content'];
+            if ($request->has('category_id')) {
+                $story->category_id = $validatedData['category_id'];
             }
     
-            // Perbarui category_id jika ada
-            if (isset($validatedData['category_id'])) {
-                $updateData['category_id'] = $validatedData['category_id'];
-            }
-    
-            // Perbarui cover image jika ada file yang diupload
-            $coverImagePath = $story->images_cover;
             if ($request->hasFile('images_cover')) {
+                if ($story->images_cover) {
+                    Storage::delete('public/cover/' . $story->images_cover);
+                }
+    
                 $coverImage = $request->file('images_cover');
                 $coverImagePath = time() . '_' . $coverImage->getClientOriginalName();
                 $coverImage->storeAs('public/cover', $coverImagePath);
-                $updateData['images_cover'] = $coverImagePath;
+                $story->images_cover = $coverImagePath;
             }
     
-            // Perbarui data cerita
-            $story->update($updateData);
+            $imagePaths = $story->images ? json_decode($story->images, true) : [];
     
-            // Hapus gambar berdasarkan ID di _removeImages[]
-            if ($request->has('_removeImages')) {
-                $imageIds = $validatedData['_removeImages'];
-    
-                foreach ($imageIds as $imageId) {
-                    $image = $story->images()->find($imageId);
-    
-                    if ($image) {
-                        // Hapus file gambar dari storage
-                        Storage::delete('public/images/' . $image->filename);
-    
-                        // Hapus data gambar dari database
-                        $image->delete();
-                    }
-                }
-            }
-    
-            // Tambahkan gambar baru jika diupload
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
                     $imagePath = time() . '_' . $image->getClientOriginalName();
                     $image->storeAs('public/images', $imagePath);
-                    $story->images()->create(['filename' => $imagePath]);
+                    $imagePaths[] = $imagePath; // Add new image path
                 }
             }
     
+            $story->images = json_encode($imagePaths);
+            $story->save();
+    
             return response()->json([
                 'message' => 'Story updated successfully',
-                'story' => $story->load('images'),
+                'story' => $story,
             ], 200);
-    
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $e->errors(),
-            ], 422);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to update story',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(['message' => 'Something went wrong', 'error' => $e->getMessage()], 500);
         }
-    }
-    
-    
-    
-
-
-
-    
-
+    }    
       
     /**
      * Remove the specified resource from storage.
