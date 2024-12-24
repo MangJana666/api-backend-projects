@@ -17,7 +17,7 @@ class Story extends Model
     protected $fillable = [
         'title',
         'content',
-        'images_cover',
+        // 'images_cover',
         'images',
         'category_id',
         'user_id',

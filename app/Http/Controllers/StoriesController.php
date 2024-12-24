@@ -75,7 +75,7 @@ class StoriesController extends Controller
              $validateData = $request->validate([
                  'title' => 'required',
                  'content' => 'required',
-                 'images_cover' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                //  'images_cover' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
                  'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
                  'category_id' => 'required|exists:categories,id',
              ]);
@@ -85,12 +85,12 @@ class StoriesController extends Controller
              }
      
              // Handle cover image upload
-             $coverImagePath = null;
-             if ($request->hasFile('images_cover')) {
-                 $coverImage = $request->file('images_cover');
-                 $coverImagePath = time() . '_' . $coverImage->getClientOriginalName();
-                 $coverImage->storeAs('public/cover', $coverImagePath);
-             }
+            //  $coverImagePath = null;
+            //  if ($request->hasFile('images_cover')) {
+            //      $coverImage = $request->file('images_cover');
+            //      $coverImagePath = time() . '_' . $coverImage->getClientOriginalName();
+            //      $coverImage->storeAs('public/cover', $coverImagePath);
+            //  }
      
              // Handle multiple images upload
              $imagePaths = [];
@@ -106,7 +106,7 @@ class StoriesController extends Controller
              $story = Story::create([
                  'title' => $validateData['title'],
                  'content' => $validateData['content'],
-                 'images_cover' => $coverImagePath,
+                //  'images_cover' => $coverImagePath,
                  'images' => json_encode($imagePaths), // Save as JSON
                  'category_id' => $validateData['category_id'],
                  'user_id' => $user->id,
@@ -738,7 +738,7 @@ class StoriesController extends Controller
             $validatedData = $request->validate([
                 'title' => 'sometimes|max:255',
                 'content' => 'sometimes',
-                'images_cover' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                // 'images_cover' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
                 'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
                 'category_id' => 'sometimes|exists:categories,id',
             ]);
@@ -757,16 +757,16 @@ class StoriesController extends Controller
                 $story->category_id = $validatedData['category_id'];
             }
     
-            if ($request->hasFile('images_cover')) {
-                if ($story->images_cover) {
-                    Storage::delete('public/cover/' . $story->images_cover);
-                }
+            // if ($request->hasFile('images_cover')) {
+            //     if ($story->images_cover) {
+            //         Storage::delete('public/cover/' . $story->images_cover);
+            //     }
     
-                $coverImage = $request->file('images_cover');
-                $coverImagePath = time() . '_' . $coverImage->getClientOriginalName();
-                $coverImage->storeAs('public/cover', $coverImagePath);
-                $story->images_cover = $coverImagePath;
-            }
+            //     $coverImage = $request->file('images_cover');
+            //     $coverImagePath = time() . '_' . $coverImage->getClientOriginalName();
+            //     $coverImage->storeAs('public/cover', $coverImagePath);
+            //     $story->images_cover = $coverImagePath;
+            // }
     
             $imagePaths = $story->images ? json_decode($story->images, true) : [];
     
