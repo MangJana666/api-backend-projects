@@ -67,62 +67,107 @@ class StoriesController extends Controller
      * Store a newly created resource in storage.
      */
 
-     public function store(Request $request)
-     {
-         try {
-             $user = auth()->user();
+    //  public function store(Request $request)
+    //  {
+    //      try {
+    //          $user = auth()->user();
      
-             $validateData = $request->validate([
-                 'title' => 'required',
-                 'content' => 'required',
-                //  'images_cover' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-                 'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-                 'category_id' => 'required|exists:categories,id',
-             ]);
+    //          $validateData = $request->validate([
+    //              'title' => 'required',
+    //              'content' => 'required',
+    //             //  'images_cover' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+    //              'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+    //              'category_id' => 'required|exists:categories,id',
+    //          ]);
      
-             if (!$user) {
-                 return response()->json(['message' => 'User not authenticated'], 401);
-             }
+    //          if (!$user) {
+    //              return response()->json(['message' => 'User not authenticated'], 401);
+    //          }
      
-             // Handle cover image upload
-            //  $coverImagePath = null;
-            //  if ($request->hasFile('images_cover')) {
-            //      $coverImage = $request->file('images_cover');
-            //      $coverImagePath = time() . '_' . $coverImage->getClientOriginalName();
-            //      $coverImage->storeAs('public/cover', $coverImagePath);
-            //  }
+    //          // Handle cover image upload
+    //         //  $coverImagePath = null;
+    //         //  if ($request->hasFile('images_cover')) {
+    //         //      $coverImage = $request->file('images_cover');
+    //         //      $coverImagePath = time() . '_' . $coverImage->getClientOriginalName();
+    //         //      $coverImage->storeAs('public/cover', $coverImagePath);
+    //         //  }
      
-             // Handle multiple images upload
-             $imagePaths = [];
-             if ($request->hasFile('images')) {
-                 foreach ($request->file('images') as $image) {
-                     $imagePath = time() . '_' . $image->getClientOriginalName();
-                     $image->storeAs('public/images', $imagePath);
-                     $imagePaths[] = $imagePath; // Add to image paths array
-                 }
-             }
+    //          // Handle multiple images upload
+    //          $imagePaths = [];
+    //          if ($request->hasFile('images')) {
+    //              foreach ($request->file('images') as $image) {
+    //                  $imagePath = time() . '_' . $image->getClientOriginalName();
+    //                  $image->storeAs('public/images', $imagePath);
+    //                  $imagePaths[] = $imagePath; // Add to image paths array
+    //              }
+    //          }
      
-             // Create the story
-             $story = Story::create([
-                 'title' => $validateData['title'],
-                 'content' => $validateData['content'],
-                //  'images_cover' => $coverImagePath,
-                 'images' => json_encode($imagePaths), // Save as JSON
-                 'category_id' => $validateData['category_id'],
-                 'user_id' => $user->id,
-             ]);
+    //          // Create the story
+    //          $story = Story::create([
+    //              'title' => $validateData['title'],
+    //              'content' => $validateData['content'],
+    //             //  'images_cover' => $coverImagePath,
+    //              'images' => json_encode($imagePaths), // Save as JSON
+    //              'category_id' => $validateData['category_id'],
+    //              'user_id' => $user->id,
+    //          ]);
      
-             return response()->json([
-                 'message' => 'Story created successfully',
-                 'story' => $story,
-             ], 201);
-         } catch (\Exception $e) {
-             \Log::error('Error creating story: ' . $e->getMessage(), [
-                 'trace' => $e->getTraceAsString(),
-             ]);
-             return response()->json(['message' => 'Something went wrong', 'error' => $e->getMessage()], 500);
-         }
-     }
+    //          return response()->json([
+    //              'message' => 'Story created successfully',
+    //              'story' => $story,
+    //          ], 201);
+    //      } catch (\Exception $e) {
+    //          \Log::error('Error creating story: ' . $e->getMessage(), [
+    //              'trace' => $e->getTraceAsString(),
+    //          ]);
+    //          return response()->json(['message' => 'Something went wrong', 'error' => $e->getMessage()], 500);
+    //      }
+    //  }
+
+    public function store(Request $request)
+    {
+        try {
+            $user = auth()->user();
+    
+            $validateData = $request->validate([
+                'title' => 'required',
+                'content' => 'required',
+                'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'category_id' => 'required|exists:categories,id',
+            ]);
+    
+            if (!$user) {
+                return response()->json(['message' => 'User not authenticated'], 401);
+            }
+    
+            // Create the story
+            $story = Story::create([
+                'title' => $validateData['title'],
+                'content' => $validateData['content'],
+                'category_id' => $validateData['category_id'],
+                'user_id' => $user->id,
+            ]);
+    
+            // Handle multiple images upload
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $image) {
+                    $imagePath = time() . '_' . $image->getClientOriginalName();
+                    $image->storeAs('public/images', $imagePath);
+                    $story->images()->create(['filename' => $imagePath]);
+                }
+            }
+    
+            return response()->json([
+                'message' => 'Story created successfully',
+                'story' => $story->load('images'),
+            ], 201);
+        } catch (\Exception $e) {
+            \Log::error('Error creating story: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['message' => 'Something went wrong', 'error' => $e->getMessage()], 500);
+        }
+    }
      
     /**
      * Display the specified resource.

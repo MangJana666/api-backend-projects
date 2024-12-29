@@ -18,7 +18,7 @@ class Story extends Model
         'title',
         'content',
         // 'images_cover',
-        'images',
+        // 'images',
         'category_id',
         'user_id',
     ];
@@ -29,5 +29,9 @@ class Story extends Model
 
     public function category(): BelongsTo{
         return $this->belongsTo(Category::class);
+    }
+
+    public function images(): HasMany{
+        return $this->hasMany(Image::class);
     }
 }
