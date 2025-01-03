@@ -44,19 +44,31 @@ class StoriesController extends Controller
     public function show($id)
     {
         try {
-            $stories = Story::find($id);
+            // Eager load images relationship
+            $story = Story::with('images')->find($id);
     
-            if (!$stories) {
+            if (!$story) {
                 return response()->json([
                     'message' => 'Story not found'
                 ], 404);
             }
     
+            // Add full URL for each image
+            $story->images->transform(function ($image) {
+                $image->url = asset('storage/' . $image->filename);
+                return $image;
+            });
+    
             return response()->json([
-                'story' => $stories
+                'status' => true,
+                'data' => [
+                    'story' => $story,
+                ]
             ], 200);
+    
         } catch (\Exception $e) {
             return response()->json([
+                'status' => false,
                 'message' => 'Failed to retrieve story',
                 'error' => $e->getMessage()
             ], 500);
