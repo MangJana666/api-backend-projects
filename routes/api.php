@@ -21,6 +21,8 @@ use App\Http\Controllers\CategoriesController;
 
 Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::get('/all-stories', [StoriesController::class, 'allStories'])->name('all-stories');
+Route::get('/story-by-category/{categoryId}', [StoriesController::class, 'storiesByCategory'])->name('story-by-category');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('users', UsersController::class)->parameters([
@@ -39,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('stories', StoriesController::class)->parameters([
         'stories' => 'id'
     ]);
+    Route::get('my-profile/stories', [StoriesController::class, 'myStories'])->name('my-stories');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
 

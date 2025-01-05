@@ -17,12 +17,57 @@ class StoriesController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    // public function index()
+    // {
+    //     try {
+    //         $stories = Story::with(['images', 'category']);
+    
+    //         if ($stories->isEmpty()) {
+    //             return response()->json([
+    //                 'message' => 'No stories found'
+    //             ], 404);
+    //         }
+    //         $formattedStories = $stories->map(function($story) {
+    //             return [
+    //                 'id' => $story->id,
+    //                 'title' => $story->title,
+    //                 'content' => $story->content,
+    //                 'category' => [
+    //                     'name' => $story->category->name
+    //                 ],
+    //                 'user' => [
+    //                     'id' => $story->user->id,
+    //                     'name' => $story->user->name
+    //                 ],
+    //                 'images' => $story->images->map(function($image) {
+    //                     return [
+    //                         'id' => $image->id,
+    //                         'filename' => $image->filename,
+    //                         'url' => asset('storage/' . $image->filename)
+    //                     ];
+    //                 })
+    //             ];
+    //         });
+    
+    //         return response()->json([
+    //             'status' => true,
+    //             'data' => [
+    //                 'stories' => $formattedStories
+    //             ]
+    //         ], 200);
+    
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'message' => 'Failed to retrieve stories',
+    //             'error' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
+
+    public function allStories()
     {
         try {
-            $user = auth()->user();
-
-            $stories = Story::all();
+            $stories = Story::with(['images', 'category', 'user'])->get();
     
             if ($stories->isEmpty()) {
                 return response()->json([
@@ -30,22 +75,100 @@ class StoriesController extends Controller
                 ], 404);
             }
     
+            $formattedStories = $stories->map(function($story) {
+                return [
+                    'id' => $story->id,
+                    'title' => $story->title,
+                    'content' => $story->content,
+                    'category' => [
+                        'name' => $story->category->name
+                    ],
+                    'user' => [
+                        'id' => $story->user->id,
+                        'name' => $story->user->name
+                    ],
+                    'images' => $story->images->map(function($image) {
+                        return [
+                            'id' => $image->id,
+                            'filename' => $image->filename,
+                            'url' => asset('storage/' . $image->filename)
+                        ];
+                    })
+                ];
+            });
+    
             return response()->json([
-                'stories' => $stories
+                'status' => true,
+                'data' => [
+                    'stories' => $formattedStories
+                ]
             ], 200);
+    
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to retrieve stories',
                 'error' => $e->getMessage()
             ], 500);
         }
-    }    
+    }
+
+    public function storiesByCategory($categoryId)
+    {
+        try {
+            $stories = Story::with(['images', 'category', 'user'])
+                ->where('category_id', $categoryId)
+                ->get();
+    
+            if ($stories->isEmpty()) {
+                return response()->json([
+                    'message' => 'No stories found in this category'
+                ], 404);
+            }
+    
+            $formattedStories = $stories->map(function($story) {
+                return [
+                    'id' => $story->id,
+                    'title' => $story->title,
+                    'content' => $story->content,
+                    'category' => [
+                        'name' => $story->category->name
+                    ],
+                    'user' => [
+                        'id' => $story->user->id,
+                        'name' => $story->user->name
+                    ],
+                    'images' => $story->images->map(function($image) {
+                        return [
+                            'id' => $image->id,
+                            'filename' => $image->filename,
+                            'url' => asset('storage/' . $image->filename)
+                        ];
+                    })
+                ];
+            });
+    
+            return response()->json([
+                'status' => true,
+                'data' => [
+                    'stories' => $formattedStories
+                ]
+            ], 200);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to retrieve stories',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 
     public function show($id)
     {
         try {
             // Eager load images relationship
-            $story = Story::with('images')->find($id);
+            $user = auth()->user();
+            $story = Story::with(['images', 'user', 'category'])->find($id);
     
             if (!$story) {
                 return response()->json([
@@ -62,7 +185,14 @@ class StoriesController extends Controller
             return response()->json([
                 'status' => true,
                 'data' => [
-                    'story' => $story,
+                    'story' => [
+                        'id' => $story->id,
+                        'title' => $story->title,
+                        'content' => $story->content,
+                        'category' => $story->category,
+                        'user' => $story->user,
+                        'images' => $story->images,
+                    ],
                 ]
             ], 200);
     
@@ -203,7 +333,7 @@ class StoriesController extends Controller
             $story = Story::create([
                 'title' => $validateData['title'],
                 'content' => $validateData['content'],
-                'images_cover' => null, // Default null, update if needed
+                // 'images_cover' => null, // Default null, update if needed
                 'category_id' => $validateData['category_id'],
                 'user_id' => $user->id,
             ]);
@@ -252,6 +382,80 @@ class StoriesController extends Controller
      * Display the specified resource.
      */
 
+    // public function update(Request $request, string $id)
+    // {
+    //     try {
+    //         $user = auth()->user();
+    
+    //         if (!$user) {
+    //             return response()->json(['message' => 'User not authenticated'], 401);
+    //         }
+    
+    //         // Validate the request data
+    //         $validatedData = $request->validate([
+    //             'title' => 'sometimes|string|max:255',
+    //             'content' => 'sometimes|string',
+    //             'category_id' => 'sometimes|exists:categories,id',
+    //             'images.*' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+    //             '_removeImages' => 'array|max:5',
+    //             '_removeImages.*' => 'exists:images,id'
+    //         ]);
+    
+    //         // Find the story or fail
+    //         $story = Story::findOrFail($id);
+    
+    //         // Update the story fields
+    //         if (isset($validatedData['title'])) {
+    //             $story->title = $validatedData['title'];
+    //         }
+    //         if (isset($validatedData['content'])) {
+    //             $story->content = $validatedData['content'];
+    //         }
+    //         if (isset($validatedData['category_id'])) {
+    //             $story->category_id = $validatedData['category_id'];
+    //         }
+    
+    //         // Save the story changes
+    //         $story->save();
+    
+    //     // Handle removing images
+    //     if ($request->has('_removeImages')) {
+    //         foreach ($validatedData['_removeImages'] as $imageId) {
+    //             $image = $story->images()->find($imageId);
+    //             if ($image) {
+    //                 // Delete physical file
+    //                 Storage::delete('public/images/' . basename($image->filename));
+    //                 $image->delete();
+    //             }
+    //         }
+    //     }
+
+    //     // Handle new image uploads
+    //     if ($request->hasFile('images')) {
+    //         foreach ($request->file('images') as $image) {
+    //             $filename = time() . '_' . $image->getClientOriginalName();
+    //             $image->storeAs('public/images', $filename);
+                
+    //             // Store full path in database
+    //             $fullPath = Storage::url('public/images/' . $filename);
+    //             $story->images()->create([
+    //                 'filename' => $fullPath
+    //             ]);
+    //         }
+    //     }
+    
+    //         return response()->json([
+    //             'message' => 'Story updated successfully',
+    //             'story' => $story->load('images'),
+    //         ], 200);
+    //     } catch (\Exception $e) {
+    //         \Log::error('Error updating story: ' . $e->getMessage(), [
+    //             'trace' => $e->getTraceAsString(),
+    //         ]);
+    //         return response()->json(['message' => 'Something went wrong', 'error' => $e->getMessage()], 500);
+    //     }
+    // }
+
     public function update(Request $request, string $id)
     {
         try {
@@ -267,8 +471,6 @@ class StoriesController extends Controller
                 'content' => 'sometimes|string',
                 'category_id' => 'sometimes|exists:categories,id',
                 'images.*' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-                '_removeImages' => 'array|max:5',
-                '_removeImages.*' => 'exists:images,id'
             ]);
     
             // Find the story or fail
@@ -284,35 +486,28 @@ class StoriesController extends Controller
             if (isset($validatedData['category_id'])) {
                 $story->category_id = $validatedData['category_id'];
             }
-    
-            // Save the story changes
+
             $story->save();
     
-        // Handle removing images
-        if ($request->has('_removeImages')) {
-            foreach ($validatedData['_removeImages'] as $imageId) {
-                $image = $story->images()->find($imageId);
-                if ($image) {
-                    // Delete physical file
-                    Storage::delete('public/images/' . basename($image->filename));
-                    $image->delete();
+            // Delete all existing images
+            foreach ($story->images as $image) {
+                Storage::delete('public/images/' . basename($image->filename));
+                $image->delete();
+            }
+    
+            // Handle new image uploads
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $image) {
+                    $filename = time() . '_' . $image->getClientOriginalName();
+                    $image->storeAs('public/images', $filename);
+                    
+                    // Store full path in database
+                    $fullPath = Storage::url('public/images/' . $filename);
+                    $story->images()->create([
+                        'filename' => $fullPath
+                    ]);
                 }
             }
-        }
-
-        // Handle new image uploads
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $image) {
-                $filename = time() . '_' . $image->getClientOriginalName();
-                $image->storeAs('public/images', $filename);
-                
-                // Store full path in database
-                $fullPath = Storage::url('public/images/' . $filename);
-                $story->images()->create([
-                    'filename' => $fullPath
-                ]);
-            }
-        }
     
             return response()->json([
                 'message' => 'Story updated successfully',
@@ -379,6 +574,43 @@ class StoriesController extends Controller
                 'message' => 'Something went wrong',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function myStories()
+    {
+        try {
+            $user = auth()->user();
+
+            if(!$user){
+                return response()->json([
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            $stories = Story::with('images')
+                ->where('user_id', $user->id)
+                ->get();
+
+            $stories->each(function ($story) {
+                $story->images->each(function ($image) {
+                    $image->url = asset('storage/' . $image->filename);
+                    return $image;
+                });
+            });
+
+            return response()->json([
+                'status' => true,
+                'data' => [
+                    'stories' => $stories,
+                ]
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to retrieve stories',
+                'error' => $th->getMessage()
+            ]);
         }
     }
     
