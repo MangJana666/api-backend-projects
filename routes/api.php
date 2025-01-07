@@ -22,7 +22,9 @@ use App\Http\Controllers\CategoriesController;
 Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::get('/all-stories', [StoriesController::class, 'allStories'])->name('all-stories');
+Route::get('/newest-stories', [StoriesController::class, 'getNewestStory'])->name('newest-stories');
 Route::get('/story-by-category/{categoryId}', [StoriesController::class, 'storiesByCategory'])->name('story-by-category');
+Route::get('/story-sort-by', [StoriesController::class, 'sortStory'])->name('story-sort-by');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('users', UsersController::class)->parameters([
