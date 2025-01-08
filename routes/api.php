@@ -25,6 +25,7 @@ Route::get('/all-stories', [StoriesController::class, 'allStories'])->name('all-
 Route::get('/newest-stories', [StoriesController::class, 'getNewestStory'])->name('newest-stories');
 Route::get('/story-by-category/{categoryId}', [StoriesController::class, 'storiesByCategory'])->name('story-by-category');
 Route::get('/story-sort-by', [StoriesController::class, 'sortStory'])->name('story-sort-by');
+Route::get('/story-index', [StoriesController::class, 'newestStoryIndex'])->name('story-index');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('users', UsersController::class)->parameters([

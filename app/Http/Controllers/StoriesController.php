@@ -38,11 +38,13 @@ class StoriesController extends Controller
                     'id' => $story->id,
                     'title' => $story->title,
                     'content' => $story->content,
+                    'created_at' => $story->created_at->format('d F Y'),
                     'category' => [
                         'name' => $story->category->name
                     ],
                     'user' => [
                         'id' => $story->user->id,
+                        'avatar' => $story->user->avatar,
                         'username' => $story->user->username
                     ],
                     'images' => $story->images->map(function($image) {
@@ -83,6 +85,7 @@ class StoriesController extends Controller
         try {
             $stories = Story::with(['images', 'category', 'user'])
                 ->where('category_id', $categoryId)
+                ->orderBy('created_at', 'desc')
                 ->get();
     
             if ($stories->isEmpty()) {
@@ -96,18 +99,19 @@ class StoriesController extends Controller
                     'id' => $story->id,
                     'title' => $story->title,
                     'content' => $story->content,
+                    'created_at' => $story->created_at->format('d F Y'),
                     'category' => [
                         'name' => $story->category->name
                     ],
                     'user' => [
                         'id' => $story->user->id,
-                        'name' => $story->user->name
+                        'username' => $story->user->username
                     ],
                     'images' => $story->images->map(function($image) {
                         return [
                             'id' => $image->id,
                             'filename' => $image->filename,
-                            'url' => asset('storage/' . $image->filename)
+                            'url' => asset( $image->filename)
                         ];
                     })
                 ];
@@ -132,7 +136,6 @@ class StoriesController extends Controller
     public function show($id)
     {
         try {
-            // Eager load images relationship
             $user = auth()->user();
             $story = Story::with(['images', 'user', 'category'])->find($id);
     
@@ -142,34 +145,65 @@ class StoriesController extends Controller
                 ], 404);
             }
     
-            // Add full URL for each image
-            $story->images->transform(function ($image) {
-                $image->url = asset('storage/' . $image->filename);
-                return $image;
+            // $story->images->transform(function ($image) {
+            //     $image->url = asset($image->filename);
+            //     return $image;
+            // });
+
+            $simmilarStories = Story::with(['images', 'user', 'category'])
+                ->where('category_id', $story->category_id)
+                ->where('id', '!=', $story->id)
+                ->get();
+
+            $formattedStories = [
+                    'id' => $story->id,
+                    'title' => $story->title,
+                    'content' => $story->content,
+                    'created_at' => $story->created_at->format('d F Y'),
+
+                    'user' => [
+                        'id' => $story->user->id,
+                        'avatar' => $story->user->avatar,
+                        'username' => $story->user->username
+                    ],
+
+                    'images' => $story->images->map(function($image) {
+                        return [
+                            'id' => $image->id,
+                            'filename' => $image->filename,
+                            'url' => asset($image->filename)
+                        ];
+                    })
+                ];
+
+            $formattedSimmilarStories = $simmilarStories->map(function($story){
+                return [
+                    'id' => $story->id,
+                    'title' => $story->title,
+                    'content' => $story->content,
+                    'created_at' => $story->created_at->format('d F Y'),
+
+                    'user' => [
+                        'id' => $story->user->id,
+                        'avatar' => $story->user->avatar,
+                        'username' => $story->user->username
+                    ],
+
+                    'images' => $story->images->map(function($image) {
+                        return [
+                            'id' => $image->id,
+                            'filename' => $image->filename,
+                            'url' => asset($image->filename)
+                        ];
+                    })
+                ];
             });
     
             return response()->json([
                 'status' => true,
                 'data' => [
-                    'story' => [
-                        'id' => $story->id,
-                        'title' => $story->title,
-                        'content' => $story->content,
-                        'category' => $story->category,
-                        'user' => $story->user,
-                        'images' => $story->images,
-                    ],
-                    'user' => [
-                        'id' => $user->id,
-                        'name' => $user->name
-                    ],
-                    'images' => $story->images->map(function($image) {
-                        return [
-                            'id' => $image->id,
-                            'filename' => $image->filename,
-                            'url' => asset('storage/' . $image->filename)
-                        ];
-                    })
+                    'stories' => $formattedStories,
+                    'simmilarStories' => $formattedSimmilarStories
                 ]
             ], 200);
     
@@ -377,7 +411,8 @@ class StoriesController extends Controller
     
             $stories = Story::with(['images', 'category', 'user'])
                 ->where('user_id', $user->id)
-                ->get();
+                ->paginate(4);
+
     
             if ($stories->isEmpty()) {
                 return response()->json([
@@ -390,19 +425,20 @@ class StoriesController extends Controller
                     'id' => $story->id,
                     'title' => $story->title,
                     'content' => $story->content,
+                    'created_at' => $story->created_at->format('d F Y'),
                     'category' => [
                         'id' => $story->category->id,
                         'name' => $story->category->name
                     ],
                     'user' => [
                         'id' => $story->user->id,
-                        'name' => $story->user->name
+                        'username' => $story->user->username
                     ],
                     'images' => $story->images->map(function($image) {
                         return [
                             'id' => $image->id,
                             'filename' => $image->filename,
-                            'url' => asset('storage/' . $image->filename)
+                            'url' => asset($image->filename)
                         ];
                     })
                 ];
@@ -415,6 +451,14 @@ class StoriesController extends Controller
                     'user' => [
                         'id' => $user->id,
                         'name' => $user->name
+                    ],
+                    'pagination' => [
+                        'total' =>$stories->total(),
+                        'per_page' => $stories->perPage(),
+                        'current_page' => $stories->currentPage(),
+                        'last_page' => $stories->lastPage(),
+                        'next_page_url' => $stories->nextPageUrl(),
+                        'prev_page_url' => $stories->previousPageUrl()
                     ]
                 ]
             ], 200);
@@ -446,18 +490,20 @@ class StoriesController extends Controller
                     'id' => $story->id,
                     'title' => $story->title,
                     'content' => $story->content,
+                    'created_at' => $story->created_at->format('d F Y'),
                     'category' => [
                         'name' => $story->category->name
                     ],
                     'user' => [
                         'id' => $story->user->id,
+                        'avatar' => $story->user->avatar,
                         'username' => $story->user->username
                     ],
                     'images' => $story->images->map(function($image) {
                         return [
                             'id' => $image->id,
                             'filename' => $image->filename,
-                            'url' => asset('storage/' . $image->filename)
+                            'url' => asset($image->filename)
                         ];
                     })
                 ];
@@ -508,7 +554,7 @@ class StoriesController extends Controller
                     'id' => $story->id,
                     'title' => $story->title,
                     'content' => $story->content,
-
+                    'created_at' => $story->created_at->format('d F Y'),
                     'category' => [
                         'name' => $story->category->name,
                     ],
@@ -549,5 +595,66 @@ class StoriesController extends Controller
                 'error' => $th->getMessage()
             ], 500);
         }
-    }    
+    }
+
+    public function newestStoryIndex()
+    {
+        try {
+            $stories = Story::with(['images', 'category', 'user'])
+                ->orderBy('created_at', 'desc')
+                ->paginate(6);
+    
+            if ($stories->isEmpty()) {
+                return response()->json([
+                    'message' => 'No stories found'
+                ], 404);
+            }
+    
+            $formattedStories = $stories->map(function($story) {
+                return [
+                    'id' => $story->id,
+                    'title' => $story->title,
+                    'content' => $story->content,
+                    'created_at' => $story->created_at->format('d F Y'),
+                    'category' => [
+                        'name' => $story->category->name
+                    ],
+                    'user' => [
+                        'id' => $story->user->id,
+                        'avatar' => $story->user->avatar,
+                        'username' => $story->user->username
+                    ],
+                    'images' => $story->images->map(function($image) {
+                        return [
+                            'id' => $image->id,
+                            'filename' => $image->filename,
+                            'url' => asset($image->filename)
+                        ];
+                    })
+                ];
+            });
+    
+            return response()->json([
+                'status' => true,
+                'data' => [
+                    'stories' => $formattedStories,
+                    'pagination' => [
+                        'total' => $stories->total(),
+                        'per_page' => $stories->perPage(),
+                        'current_page' => $stories->currentPage(),
+                        'last_page' => $stories->lastPage(),
+                        'next_page_url' => $stories->nextPageUrl(),
+                        'prev_page_url' => $stories->previousPageUrl()
+                    ]
+                ]
+            ], 200);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to retrieve stories',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
