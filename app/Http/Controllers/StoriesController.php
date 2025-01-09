@@ -105,6 +105,7 @@ class StoriesController extends Controller
                     ],
                     'user' => [
                         'id' => $story->user->id,
+                        'avatar' => $story->user->avatar,
                         'username' => $story->user->username
                     ],
                     'images' => $story->images->map(function($image) {
