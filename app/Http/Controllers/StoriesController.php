@@ -154,7 +154,7 @@ class StoriesController extends Controller
             $simmilarStories = Story::with(['images', 'user', 'category'])
                 ->where('category_id', $story->category_id)
                 ->where('id', '!=', $story->id)
-                ->get();
+                ->paginate(3);
 
             $formattedStories = [
                     'id' => $story->id,
@@ -188,6 +188,11 @@ class StoriesController extends Controller
                         'id' => $story->user->id,
                         'avatar' => $story->user->avatar,
                         'username' => $story->user->username
+                    ],
+
+                    'category' => [
+                        'id' => $story->category->id,
+                        'name' => $story->category->name
                     ],
 
                     'images' => $story->images->map(function($image) {
