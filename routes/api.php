@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UsersController;
 use App\Http\Controllers\StoriesController;
+use App\Http\Controllers\BookmarksController;
 use App\Http\Controllers\CategoriesController;
 
 
@@ -26,6 +27,7 @@ Route::get('/newest-stories', [StoriesController::class, 'getNewestStory'])->nam
 Route::get('/story-by-category/{categoryId}', [StoriesController::class, 'storiesByCategory'])->name('story-by-category');
 Route::get('/story-sort-by', [StoriesController::class, 'sortStory'])->name('story-sort-by');
 Route::get('/story-index', [StoriesController::class, 'newestStoryIndex'])->name('story-index');
+Route::get('/story/popular-story', [StoriesController::class, 'getPopularStory']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('users', UsersController::class)->parameters([
@@ -37,15 +39,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('categories', CategoriesController::class)->parameters([
         'categories' => 'id'
     ]);
-    // Route::apiResource('stories', StoriesController::class)->parameters([
-    //     'stories' => 'id'
-    // ]);
-    // Route::put('/update-stories/{id}', [StoriesController::class, 'updateStories'])->name('update-stories');
     Route::apiResource('stories', StoriesController::class)->parameters([
         'stories' => 'id'
     ]);
     Route::get('my-profile/stories', [StoriesController::class, 'myStories'])->name('my-stories');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::post('/bookmarks/{story}', [BookmarksController::class, 'addStoryToBookmarks']);
+    Route::get('/bookmarks', [BookmarksController::class, 'getUserBookmarks']);
 });
 
     

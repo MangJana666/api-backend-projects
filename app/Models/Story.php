@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Image;
 use App\Models\Users;
+use App\Models\Bookmark;
 use App\Models\Category;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,8 +18,6 @@ class Story extends Model
     protected $fillable = [
         'title',
         'content',
-        // 'images_cover',
-        // 'images',
         'category_id',
         'user_id',
     ];
@@ -33,5 +32,17 @@ class Story extends Model
 
     public function images(): HasMany{
         return $this->hasMany(Image::class);
+    }
+
+    public function bookmarks(): HasMany{
+        return $this->hasMany(Bookmark::class);
+    }
+
+    public function bookmarkedBy(): HasMany{
+        return $this->belongsToMany(Users::class, 'bookmarks');
+    }
+
+    public function getBookmarksCountAttribute(){
+        return $this->bookmarks()->count();
     }
 }
