@@ -58,7 +58,6 @@ class StoriesController extends Controller
             });
     
             return response()->json([
-                'status' => true,
                 'data' => [
                     'stories' => $formattedStories,
                     'pagination' => [
@@ -119,7 +118,6 @@ class StoriesController extends Controller
             });
     
             return response()->json([
-                'status' => true,
                 'data' => [
                     'stories' => $formattedStories
                 ]
@@ -206,7 +204,6 @@ class StoriesController extends Controller
             });
     
             return response()->json([
-                'status' => true,
                 'data' => [
                     'stories' => $formattedStories,
                     'simmilarStories' => $formattedSimmilarStories
@@ -215,7 +212,6 @@ class StoriesController extends Controller
     
         } catch (\Exception $e) {
             return response()->json([
-                'status' => false,
                 'message' => 'Failed to retrieve story',
                 'error' => $e->getMessage()
             ], 500);
@@ -281,6 +277,67 @@ class StoriesController extends Controller
         }
     }
 
+    public function update(Request $request, string $id)
+    {
+        try {
+            $user = auth()->user();
+    
+            if (!$user) {
+                return response()->json(['message' => 'User not authenticated'], 401);
+            }
+    
+            $validatedData = $request->validate([
+                'title' => 'sometimes|string|max:255',
+                'content' => 'sometimes|string',
+                'category_id' => 'sometimes|exists:categories,id',
+                'images.*' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            ]);
+    
+            $story = Story::where('id', $id)
+                ->where('user_id', $user->id)
+                ->first();
+    
+            if (isset($validatedData['title'])) {
+                $story->title = $validatedData['title'];
+            }
+            if (isset($validatedData['content'])) {
+                $story->content = $validatedData['content'];
+            }
+            if (isset($validatedData['category_id'])) {
+                $story->category_id = $validatedData['category_id'];
+            }
+
+            $story->save();
+    
+            foreach ($story->images as $image) {
+                Storage::delete('public/images/' . basename($image->filename));
+                $image->delete();
+            }
+    
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $image) {
+                    $filename = time() . '_' . $image->getClientOriginalName();
+                    $image->storeAs('public/images', $filename);
+                    
+                    $fullPath = Storage::url('public/images/' . $filename);
+                    $story->images()->create([
+                        'filename' => $fullPath
+                    ]);
+                }
+            }
+    
+            return response()->json([
+                'message' => 'Story updated successfully',
+                'story' => $story->load('images'),
+            ], 200);
+        } catch (\Exception $e) {
+            \Log::error('Error updating story: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['message' => 'Something went wrong', 'error' => $e->getMessage()], 500);
+        }
+    }
+
     // public function update(Request $request, string $id)
     // {
     //     try {
@@ -290,34 +347,51 @@ class StoriesController extends Controller
     //             return response()->json(['message' => 'User not authenticated'], 401);
     //         }
     
+    //         $story = Story::where('id', $id)
+    //             ->where('user_id', $user->id)
+    //             ->first();
+    
+    //         if (!$story) {
+    //             return response()->json(['message' => 'Story not found'], 404);
+    //         }
+    
     //         $validatedData = $request->validate([
     //             'title' => 'sometimes|string|max:255',
     //             'content' => 'sometimes|string',
     //             'category_id' => 'sometimes|exists:categories,id',
     //             'images.*' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+    //             'delete_image_ids' => 'sometimes|array',
+    //             'delete_image_ids.*' => 'exists:images,id'
     //         ]);
     
-    //         $story = Story::where('id', $id)
-    //             ->where('user_id', $user->id)
-    //             ->first();
+    //         // Calculate final image count
+    //         $currentImagesCount = $story->images()->count();
+    //         $deleteImagesCount = $request->has('delete_image_ids') ? count($request->delete_image_ids) : 0;
+    //         $newImagesCount = $request->hasFile('images') ? count($request->file('images')) : 0;
+    //         $finalImageCount = $currentImagesCount - $deleteImagesCount + $newImagesCount;
     
-    //         if (isset($validatedData['title'])) {
-    //             $story->title = $validatedData['title'];
+    //         if ($finalImageCount > 5) {
+    //             return response()->json([
+    //                 'message' => 'Maximum 5 images allowed per story. Current total would be ' . $finalImageCount
+    //             ], 422);
     //         }
-    //         if (isset($validatedData['content'])) {
-    //             $story->content = $validatedData['content'];
-    //         }
-    //         if (isset($validatedData['category_id'])) {
-    //             $story->category_id = $validatedData['category_id'];
-    //         }
-
+    
+    //         // Update story data
+    //         $story->fill($request->only(['title', 'content', 'category_id']));
     //         $story->save();
     
-    //         foreach ($story->images as $image) {
-    //             Storage::delete('public/images/' . basename($image->filename));
-    //             $image->delete();
+    //         // Delete specific images if requested
+    //         if ($request->has('delete_image_ids')) {
+    //             foreach ($request->delete_image_ids as $imageId) {
+    //                 $image = $story->images()->find($imageId);
+    //                 if ($image) {
+    //                     Storage::delete('public/images/' . basename($image->filename));
+    //                     $image->delete();
+    //                 }
+    //             }
     //         }
     
+    //         // Add new images if provided
     //         if ($request->hasFile('images')) {
     //             foreach ($request->file('images') as $image) {
     //                 $filename = time() . '_' . $image->getClientOriginalName();
@@ -332,13 +406,17 @@ class StoriesController extends Controller
     
     //         return response()->json([
     //             'message' => 'Story updated successfully',
-    //             'story' => $story->load('images'),
+    //             'story' => $story->fresh(['images']),
     //         ], 200);
+    
     //     } catch (\Exception $e) {
     //         \Log::error('Error updating story: ' . $e->getMessage(), [
     //             'trace' => $e->getTraceAsString(),
     //         ]);
-    //         return response()->json(['message' => 'Something went wrong', 'error' => $e->getMessage()], 500);
+    //         return response()->json([
+    //             'message' => 'Something went wrong', 
+    //             'error' => $e->getMessage()
+    //         ], 500);
     //     }
     // }
 
@@ -377,11 +455,9 @@ class StoriesController extends Controller
     //             ],
     //         ]);
     
-    //         // Update story data
     //         $story->fill($request->only(['title', 'content', 'category_id']));
     //         $story->save();
     
-    //         // Delete multiple images if requested
     //         if ($request->has('delete_image_ids')) {
     //             foreach ($request->delete_image_ids as $imageId) {
     //                 $image = $story->images()->find($imageId);
@@ -435,77 +511,77 @@ class StoriesController extends Controller
     //     }
     // }
 
-    public function update(Request $request, string $id)
-    {
-        try {
-            $user = auth()->user();
+    // public function update(Request $request, string $id)
+    // {
+    //     try {
+    //         $user = auth()->user();
     
-            if (!$user) {
-                return response()->json(['message' => 'User not authenticated'], 401);
-            }
+    //         if (!$user) {
+    //             return response()->json(['message' => 'User not authenticated'], 401);
+    //         }
     
-            $story = Story::where('id', $id)
-                ->where('user_id', $user->id)
-                ->with(['images' => function($query) {
-                    $query->orderBy('created_at', 'asc');
-                }])
-                ->first();
+    //         $story = Story::where('id', $id)
+    //             ->where('user_id', $user->id)
+    //             ->with(['images' => function($query) {
+    //                 $query->orderBy('created_at', 'asc');
+    //             }])
+    //             ->first();
     
-            if (!$story) {
-                return response()->json(['message' => 'Story not found'], 404);
-            }
+    //         if (!$story) {
+    //             return response()->json(['message' => 'Story not found'], 404);
+    //         }
     
-            $validatedData = $request->validate([
-                'title' => 'sometimes|string|max:255',
-                'content' => 'sometimes|string',
-                'category_id' => 'sometimes|exists:categories,id',
-                'cover_image' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            ]);
+    //         $validatedData = $request->validate([
+    //             'title' => 'sometimes|string|max:255',
+    //             'content' => 'sometimes|string',
+    //             'category_id' => 'sometimes|exists:categories,id',
+    //             'cover_image' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+    //         ]);
     
-            $story->fill($request->only(['title', 'content', 'category_id']));
-            $story->save();
+    //         $story->fill($request->only(['title', 'content', 'category_id']));
+    //         $story->save();
     
-            if ($request->hasFile('cover_image')) {
-                $coverImage = $story->images->first();
+    //         if ($request->hasFile('cover_image')) {
+    //             $coverImage = $story->images->first();
                 
-                if ($coverImage) {
-                    Storage::delete('public/images/' . basename($coverImage->filename));
-                    $newCover = $request->file('cover_image');
-                    $filename = time() . '_' . $newCover->getClientOriginalName();
-                    $newCover->storeAs('public/images', $filename);
-                    $coverImage->update([
-                        'filename' => Storage::url('public/images/' . $filename)
-                    ]);
-                }
-            }
+    //             if ($coverImage) {
+    //                 Storage::delete('public/images/' . basename($coverImage->filename));
+    //                 $newCover = $request->file('cover_image');
+    //                 $filename = time() . '_' . $newCover->getClientOriginalName();
+    //                 $newCover->storeAs('public/images', $filename);
+    //                 $coverImage->update([
+    //                     'filename' => Storage::url('public/images/' . $filename)
+    //                 ]);
+    //             }
+    //         }
     
-            $story = $story->fresh(['images']);
+    //         $story = $story->fresh(['images']);
             
-            return response()->json([
-                'message' => 'Story updated successfully',
-                'story' => [
-                    'id' => $story->id,
-                    'title' => $story->title,
-                    'content' => $story->content,
-                    'category_id' => $story->category_id,
-                    'images' => $story->images->map(function($image) {
-                        return [
-                            'id' => $image->id,
-                            'filename' => $image->filename,
-                            'url' => asset($image->filename)
-                        ];
-                    })
-                ]
-            ], 200);
+    //         return response()->json([
+    //             'message' => 'Story updated successfully',
+    //             'story' => [
+    //                 'id' => $story->id,
+    //                 'title' => $story->title,
+    //                 'content' => $story->content,
+    //                 'category_id' => $story->category_id,
+    //                 'images' => $story->images->map(function($image) {
+    //                     return [
+    //                         'id' => $image->id,
+    //                         'filename' => $image->filename,
+    //                         'url' => asset($image->filename)
+    //                     ];
+    //                 })
+    //             ]
+    //         ], 200);
     
-        } catch (\Exception $e) {
-            \Log::error('Error updating story: ' . $e->getMessage());
-            return response()->json([
-                'message' => 'Something went wrong',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
+    //     } catch (\Exception $e) {
+    //         \Log::error('Error updating story: ' . $e->getMessage());
+    //         return response()->json([
+    //             'message' => 'Something went wrong',
+    //             'error' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
       
     /**
      * Remove the specified resource from storage.
@@ -605,7 +681,6 @@ class StoriesController extends Controller
             });
     
             return response()->json([
-                'status' => true,
                 'data' => [
                     'stories' => $formattedStories,
                     'user' => [
@@ -625,7 +700,6 @@ class StoriesController extends Controller
                 
         } catch (\Throwable $th) {
             return response()->json([
-                'status' => false,
                 'message' => 'Failed to retrieve stories',
                 'error' => $th->getMessage()
             ], 500);
@@ -670,7 +744,6 @@ class StoriesController extends Controller
             });
     
             return response()->json([
-                'status' => true,
                 'data' => [
                     'stories' => $formattedStories,
                     'pagination' => [
@@ -686,7 +759,6 @@ class StoriesController extends Controller
     
         } catch (\Exception $e) {
             return response()->json([
-                'status' => false,
                 'message' => 'Failed to retrieve stories',
                 'error' => $e->getMessage()
             ], 500);
@@ -721,6 +793,7 @@ class StoriesController extends Controller
 
                     'user' => [
                         'id' => $story->user->id,
+                        'avatar' => $story->user->avatar,
                         'username' => $story->user->username,
                     ],
 
@@ -735,7 +808,6 @@ class StoriesController extends Controller
             });
 
             return response()->json([
-                'status' => true,
                 'data' => [
                     'stories' => $formattedStories,
                     'pagination' => [
@@ -750,7 +822,6 @@ class StoriesController extends Controller
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
-                'status' => false,
                 'message' => 'Failed to retrieve stories',
                 'error' => $th->getMessage()
             ], 500);
@@ -795,7 +866,6 @@ class StoriesController extends Controller
             });
     
             return response()->json([
-                'status' => true,
                 'data' => [
                     'stories' => $formattedStories,
                     'pagination' => [
@@ -811,7 +881,6 @@ class StoriesController extends Controller
     
         } catch (\Exception $e) {
             return response()->json([
-                'status' => false,
                 'message' => 'Failed to retrieve stories',
                 'error' => $e->getMessage()
             ], 500);
@@ -857,7 +926,6 @@ class StoriesController extends Controller
             });
 
             return response()->json([
-                'status' => true,
                 'data' => [
                     'stories' => $formattedStories,
                     'pagination' => [
@@ -872,7 +940,6 @@ class StoriesController extends Controller
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
-                'status' => false,
                 'message' => 'Failed to retrieve popular stories',
                 'error' => $e->getMessage()
             ], 500);
