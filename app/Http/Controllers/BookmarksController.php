@@ -5,21 +5,22 @@ namespace App\Http\Controllers;
 use Throwable;
 use App\Models\Story;
 use App\Models\Bookmark;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class BookmarksController extends Controller
 {
+    use ApiResponse;
     public function getUserBookmarks(){
         try {
             $user = auth()->user();
 
             if(!$user){
-                return response()->json([
-                    'status' => false,
-                    'message' => 'User not Authenticated'
-                ], 401);
+                $this->unauthorizedResponse();
             }
+
+            $this->authorize('viewAny', Bookmark::class);
 
             $bookmarkedStory = Story::whereHas('bookmarks', function($query) use ($user){
                 $query->where('user_id', $user->id);
@@ -29,7 +30,6 @@ class BookmarksController extends Controller
 
             if ($bookmarkedStory->isEmpty()) {
                 return response()->json([
-                    'status' => true,
                     'message' => 'No bookmarked story found',
                     'data' => []
                 ], 200);
@@ -60,7 +60,6 @@ class BookmarksController extends Controller
             });
 
             return response()->json([
-                'status' => true,
                 'data' => [
                     'stories' => $formattedStories,
                     'pagination' => [
@@ -80,7 +79,6 @@ class BookmarksController extends Controller
             ]);
     
             return response()->json([
-                'status' => false,
                 'message' => 'Failed to retrieve bookmarks',
                 'error' => $th->getMessage()
             ], 500);
@@ -91,42 +89,41 @@ class BookmarksController extends Controller
     {
         try {
             $user = auth()->user();
-
-            if(!$user){
-                return response()->json([
-                    'status' => false,
-                    'message' => 'User not Unauthorized'
-                ], 402);
+    
+            if (!$user) {
+                return $this->unauthorizedResponse();
             }
+    
+            $this->authorize('create', $story);
+            
             $bookmark = Bookmark::where('user_id', $user->id)
-                ->where('story_id', request('story_id'))
+                ->where('story_id', $story->id)
                 ->first();
-
-            if($bookmark){
+    
+            $status = true;
+            
+            if ($bookmark) {
                 $bookmark->delete();
                 $message = 'Bookmark removed successfully';
-                $status = true;
-            }else{
+            } else {
                 Bookmark::create([
                     'user_id' => $user->id,
                     'story_id' => $story->id
                 ]);
                 $message = 'Story bookmarked successfully';
-                $status = true;
             }
-
+    
             return response()->json([
                 'status' => $status,
                 'message' => $message,
                 'bookmarks_count' => $story->fresh()->bookmarks_count
             ], 200);
-
-            
-        } catch (Throwable $th) {
+    
+        } catch (\Exception $e) {
             Log::error('Error toggling bookmark: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
-
+    
             return response()->json([
                 'status' => false,
                 'message' => 'Failed to toggle bookmark',
@@ -134,4 +131,5 @@ class BookmarksController extends Controller
             ], 500);
         }
     }
+
 }

@@ -30,6 +30,7 @@ Route::get('/story-index', [StoriesController::class, 'newestStoryIndex'])->name
 Route::get('/story/popular-story', [StoriesController::class, 'getPopularStory']);
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/refresh-token', [AuthController::class, 'refreshToken'])->name('refresh-token');
     Route::apiResource('users', UsersController::class)->parameters([
         'users' => 'id'
     ]);
@@ -46,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::post('/bookmarks/{story}', [BookmarksController::class, 'addStoryToBookmarks']);
     Route::get('/bookmarks', [BookmarksController::class, 'getUserBookmarks']);
+    Route::delete('/bookmarks/{id}', [BookmarksController::class, 'destroy']);
 });
 
     

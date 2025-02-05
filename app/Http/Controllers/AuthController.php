@@ -97,7 +97,10 @@ class AuthController extends Controller
                 ], 401);
             }
 
-            $token = $user->createToken('auth_token')->plainTextToken;
+            $user->tokens()->delete();
+
+            $token = $user->createToken('auth_token', ['*'], now()->addHours(3));
+            $plainTextToken = $token->plainTextToken;
 
             return response()->json([
                 "data" => [
@@ -117,6 +120,28 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Login failed',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function refreshToken(Request $request)
+    {
+        try {
+            $user = $request->user();
+            $user->tokens()->delete();
+
+            $token = $user->createToken('auth_token', ['*'], now()->addHours(3));
+
+            return response()->json([
+                'data' => [
+                    'token' => $token,
+                    'expires_at' => $token->accessToken->expires_at
+                ]
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Failed to refresh token',
                 'error' => $e->getMessage()
             ], 500);
         }

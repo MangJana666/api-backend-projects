@@ -96,6 +96,8 @@ class UsersController extends Controller
         try {
             $user = auth()->user();
 
+            $this->authorize('update', $user);
+
             $validateData = $request->validate([
                 'name' => 'sometimes|max:50',
                 'avatar' => 'sometimes',
@@ -145,6 +147,8 @@ class UsersController extends Controller
         try {
             $user = auth()->user();
 
+            $this->authorize('updatePassword', $user);
+            
             $validateData = $request->validate([
                 'old_password' => 'required_with:new_password',
                 'new_password' => 'nullable|min:8|max:30|confirmed',
@@ -246,6 +250,8 @@ class UsersController extends Controller
     {
         try {
             $user = auth()->user();
+
+            $this->authorize('uploadAvatar', $user);
 
             $request->validate([
                 'avatar' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
