@@ -4,7 +4,8 @@ namespace App\Traits;
 
 trait StoryResponse
 {
-    public function successResponse($data = null, $message = 'action success', $code = 200)
+    //Success Response
+    public function successResponse($data = null, $message = 'Action Story Success', $code = 200)
     {
         return response()->json([
             'message' => $message,
@@ -38,6 +39,42 @@ trait StoryResponse
                     ];
                 })
             ];
+        });
+    }
+
+    protected function formatSingleStory($story)
+    {
+        return [
+            'id' => $story->id,
+            'title' => $story->title,
+            'content' => $story->content,
+            'created_at' => $story->created_at->format('d F Y'),
+
+            'user' => [
+                'id' => $story->user->id,
+                'avatar' => $story->user->avatar,
+                'username' => $story->user->username
+            ],
+
+            'category' => [
+                'id' => $story->category->id,
+                'name' => $story->category->name
+            ],
+
+            'images' => $story->images->map(function($image) {
+                return [
+                    'id' => $image->id,
+                    'filename' => $image->filename,
+                    'url' => asset($image->filename)
+                ];
+            })
+        ];
+    }
+
+    protected function formatSimilarStories($stories)
+    {
+        return $stories->map(function($story) {
+            return $this->formatSingleStory($story);
         });
     }
 

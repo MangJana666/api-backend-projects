@@ -19,7 +19,8 @@ class StoriesController extends Controller
     use ApiResponse;
     use StoryResponse;
 
-    public function allStories()
+    //All Story
+    public function allStory()
     {
         try {
             $keyword = request()->input('keyword', '');
@@ -30,34 +31,35 @@ class StoriesController extends Controller
                 $query->where('title', 'like', '%' . $keyword . '%');
             }
     
-            $stories = $query->paginate(12);
+            $story = $query->paginate(12);
     
-            if ($stories->isEmpty()) {
+            if ($story->isEmpty()) {
                 return $this->notFoundResponseStory();
             }
     
-            return $this->formatStoryResponse($stories);
+            return $this->formatStoryResponse($story);
     
         } catch (\Exception $e) {
             return $this->internalServerError();
         }
     }
 
+    //Stories By Category
     public function storiesByCategory($categoryId)
     {
         try {
-            $stories = Story::with(['images', 'category', 'user'])
+            $story = Story::with(['images', 'category', 'user'])
                 ->where('category_id', $categoryId)
                 ->orderBy('created_at', 'desc')
                 ->get();
     
-            if ($stories->isEmpty()) {
+            if ($story->isEmpty()) {
                 $this->notFoundResponseStory();
             }
     
             return response()->json([
                 'data' => [
-                    'stories' => $this->mappingFunctionIn($stories)
+                    'stories' => $this->mappingFunctionIn($story)
                 ]
             ], 200);
     
@@ -66,7 +68,7 @@ class StoriesController extends Controller
         }
     }
 
-
+    //Show
     public function show($id)
     {
         try {
@@ -82,65 +84,11 @@ class StoriesController extends Controller
                 ->where('category_id', $story->category_id)
                 ->where('id', '!=', $story->id)
                 ->paginate(3);
-
-            $formattedStories = [
-                    'id' => $story->id,
-                    'title' => $story->title,
-                    'content' => $story->content,
-                    'created_at' => $story->created_at->format('d F Y'),
-
-                    'user' => [
-                        'id' => $story->user->id,
-                        'avatar' => $story->user->avatar,
-                        'username' => $story->user->username
-                    ],
-
-                    'category' => [
-                        'id' => $story->category->id,
-                        'name' => $story->category->name
-                    ],
-
-                    'images' => $story->images->map(function($image) {
-                        return [
-                            'id' => $image->id,
-                            'filename' => $image->filename,
-                            'url' => asset($image->filename)
-                        ];
-                    })
-                ];
-
-            $formattedSimmilarStories = $simmilarStories->map(function($story){
-                return [
-                    'id' => $story->id,
-                    'title' => $story->title,
-                    'content' => $story->content,
-                    'created_at' => $story->created_at->format('d F Y'),
-
-                    'user' => [
-                        'id' => $story->user->id,
-                        'avatar' => $story->user->avatar,
-                        'username' => $story->user->username
-                    ],
-
-                    'category' => [
-                        'id' => $story->category->id,
-                        'name' => $story->category->name
-                    ],
-
-                    'images' => $story->images->map(function($image) {
-                        return [
-                            'id' => $image->id,
-                            'filename' => $image->filename,
-                            'url' => asset($image->filename)
-                        ];
-                    })
-                ];
-            });
     
             return response()->json([
                 'data' => [
-                    'stories' => $formattedStories,
-                    'simmilarStories' => $formattedSimmilarStories
+                    'stories' => $this->formatSingleStory($story),
+                    'simmilarStories' => $this->formatSimilarStories($simmilarStories)
                 ]
             ], 200);
     
@@ -149,6 +97,7 @@ class StoriesController extends Controller
         }
     }
 
+    //Create
     public function store(Request $request)
     {
         try {
@@ -210,75 +159,7 @@ class StoriesController extends Controller
         }
     }
 
-    // public function update(Request $request, string $id)
-    // {
-    //     try {
-
-    //         $user = auth()->user();
-
-    //         if (!$user) {
-    //             return $this->unauthorizedResponse();
-    //         }
-    
-    //         $story = Story::where('id', $id)->first();
-    //         if (!$story) {
-    //             return $this->notFoundResponseStory();
-    //         }
-
-    //         $this->authorize('update', $story);
-            
-    //         $validatedData = $request->validate([
-    //             'title' => 'sometimes|string|max:255',
-    //             'content' => 'sometimes|string',
-    //             'category_id' => 'sometimes|exists:categories,id',
-    //             'images.*' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-    //         ]);
-    
-    //         $story = Story::where('id', $id)
-    //             ->where('user_id', $user->id)
-    //             ->first();
-    
-    //         if (isset($validatedData['title'])) {
-    //             $story->title = $validatedData['title'];
-    //         }
-    //         if (isset($validatedData['content'])) {
-    //             $story->content = $validatedData['content'];
-    //         }
-    //         if (isset($validatedData['category_id'])) {
-    //             $story->category_id = $validatedData['category_id'];
-    //         }
-
-    //         $story->save();
-    
-    //         foreach ($story->images as $image) {
-    //             Storage::delete('public/images/' . basename($image->filename));
-    //             $image->delete();
-    //         }
-    
-    //         if ($request->hasFile('images')) {
-    //             foreach ($request->file('images') as $image) {
-    //                 $filename = time() . '_' . $image->getClientOriginalName();
-    //                 $image->storeAs('public/images', $filename);
-                    
-    //                 $fullPath = Storage::url('public/images/' . $filename);
-    //                 $story->images()->create([
-    //                     'filename' => $fullPath
-    //                 ]);
-    //             }
-    //         }
-    
-    //         return response()->json([
-    //             'message' => 'Story updated successfully',
-    //             'story' => $story->load('images'),
-    //         ], 200);
-    //     } catch (\Exception $e) {
-    //         \Log::error('Error updating story: ' . $e->getMessage(), [
-    //             'trace' => $e->getTraceAsString(),
-    //         ]);
-    //         return $this->internalServerError();
-    //     }
-    // }
-
+    //Update
     public function update(Request $request, string $id)
     {
         try {
@@ -349,9 +230,7 @@ class StoriesController extends Controller
         }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
+    //Delete
     public function destroy(string $id)
     {
         try {
@@ -392,6 +271,7 @@ class StoriesController extends Controller
         }
     }
 
+    //User Story
     public function myStories()
     {
         try {
@@ -399,15 +279,15 @@ class StoriesController extends Controller
     
             $this->authorize('viewMyStories', Story::class);
     
-            $stories = Story::with(['images', 'category', 'user'])
+            $story = Story::with(['images', 'category', 'user'])
                 ->where('user_id', $user->id)
                 ->paginate(4);
     
-            if ($stories->isEmpty()) {
+            if ($story->isEmpty()) {
                 return $this->notFoundResponseStory();
             }
     
-            return $this->formatStoryResponse($stories);
+            return $this->formatStoryResponse($story);
                 
         } catch (\Exception $e) {
             \Log::error('Error fetching stories: ' . $e->getMessage(), [
@@ -417,24 +297,26 @@ class StoriesController extends Controller
         }
     }
 
-    public function getNewestStory()
+    // //Latest / Newest Story
+    public function newestStory()
     {
         try {
-            $stories = Story::with(['images', 'category', 'user'])
+            $story = Story::with(['images', 'category', 'user'])
                 ->orderBy('created_at', 'desc')
                 ->paginate(12);
     
-            if ($stories->isEmpty()) {
+            if ($story->isEmpty()) {
                 $this->notFoundResponseStory();
             }
     
-            return $this->formatStoryResponse($stories);
+            return $this->formatStoryResponse($story);
     
         } catch (\Exception $e) {
             return $this->internalServerError();
         }
     }
 
+    //Sort Story
     public function sortStory(Request $request)
     {
         try {
@@ -443,53 +325,101 @@ class StoriesController extends Controller
             $query = Story::with(['images', 'category', 'user'])
                 ->orderBy('title', strtolower($sort));
 
-            $stories = $query->paginate(12);
+            $story = $query->paginate(12);
 
-            if($stories->isEmpty()){
+            if($story->isEmpty()){
                 $this->notFoundResponseStory();
             }
 
-            return $this->formatStoryResponse($stories);
+            return $this->formatStoryResponse($story);
         } catch (\Throwable $th) {
             return $this->internalServerError();
         }
     }
 
-    public function newestStoryIndex()
+    //Newest Story Index
+    public function latestStory()
     {
         try {
-            $stories = Story::with(['images', 'category', 'user'])
+            $story = Story::with(['images', 'category', 'user'])
                 ->orderBy('created_at', 'desc')
                 ->paginate(6);
     
-            if ($stories->isEmpty()) {
+            if ($story->isEmpty()) {
                 $this->notFoundResponseStory();
             }
 
-            return $this->formatStoryResponse($stories);
+            return $this->formatStoryResponse($story);
     
         } catch (\Exception $e) {
             return $this->internalServerError();
         }
     }
 
+    //Popular Story
     public function getPopularStory()
     {
         try {
-            $stories = Story::withCount('bookmarks')
+            $story = Story::withCount('bookmarks')
                 ->orderBy('bookmarks_count', 'desc')
                 ->paginate(12);
 
-            if ($stories->isEmpty()){
+            if ($story->isEmpty()){
                 $this->notFoundResponseStory();
             }
 
+            return response()->json([
+                'data' => [
+                    'stories' => $this->mappingFunctionIn($story),
+                    'pagination' => $this->paginationResponse($story)
+                ]
+            ], 200);
+        } catch (\Throwable $th) {
+            return $this->internalServerError();
+        }
+    }
+
+    //Filter Data by Categories
+    public function getFilteredStory(Request $request, $filter = null)
+    {
+        try {
+            $query = Story::with(['images', 'category', 'user']);
+
+            switch ($filter) {
+                case 'popular':
+                    $query->withCount('bookmarks')
+                        ->orderBy('bookmarks_count', 'desc');
+                    break;
+                case 'newest':
+                    $query->orderBy('created_at', 'desc');
+                    break;
+                case 'asc':
+                    $query->orderBy('title', 'asc');
+                    break;
+                case 'desc':
+                    $query->orderBy('title', 'desc');
+                    break;
+                default:
+                    $query->latest;
+            }
+
+            if ($request->has('category_id')) {
+                $query->where('category_id', $request->category_id);
+            }
+    
+            $stories = $query->paginate(12);
+    
+            if ($stories->isEmpty()) {
+                return $this->notFoundResponseStory();
+            }
+    
             return response()->json([
                 'data' => [
                     'stories' => $this->mappingFunctionIn($stories),
                     'pagination' => $this->paginationResponse($stories)
                 ]
             ], 200);
+    
         } catch (\Throwable $th) {
             return $this->internalServerError();
         }

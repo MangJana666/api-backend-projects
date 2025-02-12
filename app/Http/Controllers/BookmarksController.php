@@ -7,11 +7,14 @@ use App\Models\Story;
 use App\Models\Bookmark;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
+use App\Traits\BookmarkResponse;
 use Illuminate\Support\Facades\Log;
 
 class BookmarksController extends Controller
 {
     use ApiResponse;
+    use BookmarkResponse;
+
     public function getUserBookmarks(){
         try {
             $user = auth()->user();
@@ -125,7 +128,6 @@ class BookmarksController extends Controller
             ]);
     
             return response()->json([
-                'status' => false,
                 'message' => 'Failed to toggle bookmark',
                 'error' => $e->getMessage()
             ], 500);

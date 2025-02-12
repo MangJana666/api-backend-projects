@@ -20,14 +20,26 @@ use App\Http\Controllers\CategoriesController;
 |
 */
 
+//Public routes
 Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
-Route::get('/all-stories', [StoriesController::class, 'allStories'])->name('all-stories');
-Route::get('/newest-stories', [StoriesController::class, 'getNewestStory'])->name('newest-stories');
-Route::get('/story-by-category/{categoryId}', [StoriesController::class, 'storiesByCategory'])->name('story-by-category');
-Route::get('/story-sort-by', [StoriesController::class, 'sortStory'])->name('story-sort-by');
-Route::get('/story-index', [StoriesController::class, 'newestStoryIndex'])->name('story-index');
-Route::get('/story/popular-story', [StoriesController::class, 'getPopularStory']);
+
+Route::prefix('stories')->group(function() {
+    Route::get('/all', [StoriesController::class, 'allStory']);
+    Route::get('/popular', [StoriesController::class, 'getPopularStory']);
+    Route::get('/sort', [StoriesController::class, 'sortStory']);
+    Route::get('/category/{categoryId}', [StoriesController::class, 'storiesByCategory']);
+    Route::get('/filter/{filter}', [StoriesController::class, 'getFilteredStory']);
+    //landing page
+    Route::get('/latest', [StoriesController::class, 'latestStory']);
+    //untuk di explore filter newest
+    Route::get('/newest', [StoriesController::class, 'newestStory']);
+});
+
+
+Route::apiResource('categories', CategoriesController::class)->parameters([
+    'categories' => 'id'
+]);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/refresh-token', [AuthController::class, 'refreshToken'])->name('refresh-token');
@@ -37,9 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/update-password/{id}', [UsersController::class, 'updatePassword'])->name('update-password');
     Route::put('/update-user-profile/{id}', [UsersController::class, 'updateUserProfile'])->name('update-user-profile');
     Route::post('/upload-avatar', [UsersController::class, 'uploadAvatar'])->name('upload-avatar');
-    Route::apiResource('categories', CategoriesController::class)->parameters([
-        'categories' => 'id'
-    ]);
+
     Route::apiResource('stories', StoriesController::class)->parameters([
         'stories' => 'id'
     ]);
@@ -47,7 +57,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::post('/bookmarks/{story}', [BookmarksController::class, 'addStoryToBookmarks']);
     Route::get('/bookmarks', [BookmarksController::class, 'getUserBookmarks']);
-    Route::delete('/bookmarks/{id}', [BookmarksController::class, 'destroy']);
 });
 
     

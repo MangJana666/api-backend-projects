@@ -16,14 +16,7 @@ trait ApiResponse
     //400
     public function errorResponse($message = null, $code = 400)
     {
-
-    }
-
-    public function notFoundResponseStory($message = 'Stories Not Found')
-    {
-        return response()->json([
-            'message' => $message
-        ], 404);
+        
     }
 
     public function unauthorizedResponse($message = 'User not authenticated')
@@ -32,6 +25,13 @@ trait ApiResponse
             'status' => false,
             'message' => $message
         ], 401);
+    }
+
+    public function notFoundResponseStory($message = 'Stories Not Found')
+    {
+        return response()->json([
+            'message' => $message
+        ], 404);
     }
 
     //500
