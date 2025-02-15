@@ -29,20 +29,19 @@ Route::prefix('stories')->group(function() {
     Route::get('/popular', [StoriesController::class, 'getPopularStory']);
     Route::get('/sort', [StoriesController::class, 'sortStory']);
     Route::get('/category/{categoryId}', [StoriesController::class, 'storiesByCategory']);
-    Route::get('/filter/{filter}', [StoriesController::class, 'getFilteredStory']);
+    Route::get('/filter', [StoriesController::class, 'getFilteredStory']);
     //landing page
     Route::get('/latest', [StoriesController::class, 'latestStory']);
     //untuk di explore filter newest
     Route::get('/newest', [StoriesController::class, 'newestStory']);
 });
 
-
 Route::apiResource('categories', CategoriesController::class)->parameters([
     'categories' => 'id'
 ]);
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/refresh-token', [AuthController::class, 'refreshToken'])->name('refresh-token');
+    // Route::post('/refresh-token', [AuthController::class, 'refreshToken'])->name('refresh-token');
     Route::apiResource('users', UsersController::class)->parameters([
         'users' => 'id'
     ]);

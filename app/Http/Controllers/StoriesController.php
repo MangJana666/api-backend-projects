@@ -297,7 +297,7 @@ class StoriesController extends Controller
         }
     }
 
-    // //Latest / Newest Story
+    //Latest / Newest Story
     public function newestStory()
     {
         try {
@@ -385,6 +385,15 @@ class StoriesController extends Controller
         try {
             $query = Story::with(['images', 'category', 'user']);
 
+            $filter = $request->query('filter');
+            $search = $request->query('search');
+
+            if ($search){
+                $query->where(function($q) use ($search){
+                    $q->where('title', 'like', "%$search%");
+                });
+            }
+
             switch ($filter) {
                 case 'popular':
                     $query->withCount('bookmarks')
@@ -400,7 +409,7 @@ class StoriesController extends Controller
                     $query->orderBy('title', 'desc');
                     break;
                 default:
-                    $query->latest;
+                    $query->latest();
             }
 
             if ($request->has('category_id')) {

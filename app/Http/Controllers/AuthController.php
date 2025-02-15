@@ -125,28 +125,6 @@ class AuthController extends Controller
         }
     }
 
-    public function refreshToken(Request $request)
-    {
-        try {
-            $user = $request->user();
-            $user->tokens()->delete();
-
-            $token = $user->createToken('auth_token', ['*'], now()->addHours(3));
-
-            return response()->json([
-                'data' => [
-                    'token' => $token,
-                    'expires_at' => $token->accessToken->expires_at
-                ]
-            ]);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'message' => 'Failed to refresh token',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
     public function logout(Request $request)
     {
         try {
