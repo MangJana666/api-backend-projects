@@ -21,8 +21,8 @@ use App\Http\Controllers\CategoriesController;
 */
 
 //Public routes
-Route::post('/register', [AuthController::class, 'register'])->name('register');
-Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
 
 Route::prefix('stories')->group(function() {
     Route::get('/all', [StoriesController::class, 'allStory']);
@@ -41,18 +41,17 @@ Route::apiResource('categories', CategoriesController::class)->parameters([
 ]);
 
 Route::middleware('auth:sanctum')->group(function () {
-    // Route::post('/refresh-token', [AuthController::class, 'refreshToken'])->name('refresh-token');
     Route::apiResource('users', UsersController::class)->parameters([
         'users' => 'id'
     ]);
-    Route::put('/update-password/{id}', [UsersController::class, 'updatePassword'])->name('update-password');
-    Route::put('/update-user-profile/{id}', [UsersController::class, 'updateUserProfile'])->name('update-user-profile');
-    Route::post('/upload-avatar', [UsersController::class, 'uploadAvatar'])->name('upload-avatar');
+    Route::put('/update-password/{id}', [UsersController::class, 'updatePassword']);
+    Route::put('/update-user-profile/{id}', [UsersController::class, 'updateUserProfile']);
+    Route::post('/upload-avatar', [UsersController::class, 'uploadAvatar']);
 
     Route::apiResource('stories', StoriesController::class)->parameters([
         'stories' => 'id'
     ]);
-    Route::get('my-profile/stories', [StoriesController::class, 'myStories'])->name('my-stories');
+    Route::get('my-profile/stories', [StoriesController::class, 'myStories']);
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::post('/bookmarks/{story}', [BookmarksController::class, 'addStoryToBookmarks']);
     Route::get('/bookmarks', [BookmarksController::class, 'getUserBookmarks']);

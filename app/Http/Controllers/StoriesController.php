@@ -87,7 +87,7 @@ class StoriesController extends Controller
     
             return response()->json([
                 'data' => [
-                    'stories' => $this->formatSingleStory($story),
+                    'story' => $this->formatSingleStory($story),
                     'simmilarStories' => $this->formatSimilarStories($simmilarStories)
                 ]
             ], 200);
@@ -144,8 +144,8 @@ class StoriesController extends Controller
     
             return response()->json([
                 'message' => 'Story created successfully',
-                'story' => [
-                    'data' => $story,
+                'data' => [
+                    'story' => $story,
                     'images' => $story->images->map(function ($image) {
                         return $image->filename;
                     }),

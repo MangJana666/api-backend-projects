@@ -42,6 +42,17 @@ trait StoryResponse
         });
     }
 
+    protected function storyValidationRules($stories)
+    {
+        $validateData = $request->validate([
+            'title' => 'required',
+            'content' => 'required',
+            'images' => 'array|max:5',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'category_id' => 'required|exists:categories,id',
+        ]);
+    }
+
     protected function formatSingleStory($story)
     {
         return [

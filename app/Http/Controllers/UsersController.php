@@ -83,7 +83,6 @@ class UsersController extends Controller
         } catch (Exception $e) {
             return response()->json([
                 'message' => $e->getMessage(),
-                'status' => false
             ], 500);
         }
     }
@@ -129,7 +128,6 @@ class UsersController extends Controller
         } catch (Exception $e) {
             return response()->json([
                 'message' => $e->getMessage(),
-                'status' => false
             ], 500);
         }
     }
@@ -173,7 +171,6 @@ class UsersController extends Controller
         } catch (Exception $e) {
             return response()->json([
                 'message' => $e->getMessage(),
-                'status' => false
             ], 500);
         }
     }
@@ -274,14 +271,12 @@ class UsersController extends Controller
     
             return response()->json([
                 'message' => 'Upload File Success',
-                'status' => true,
                 'data' => ['url' => $baseUrl]
             ], 200);
     
         } catch (\Exception $e) {
             return response()->json([
                 'message' => $e->getMessage(),
-                'status' => false
             ], 500);
         }
     }
